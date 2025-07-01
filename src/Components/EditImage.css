@@ -1,0 +1,45 @@
+/* src/components/EditImage.css */
+
+.editor-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: black;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+}
+
+.image-preview {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.full-image {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.item-overlay {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.4);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: move;
+    touch-action: none;
+    user-select: none;
+}
+
+.editor-toolbar {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+    background: #111;
+    color: white;
+}
