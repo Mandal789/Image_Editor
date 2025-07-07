@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
+import Konva from "konva";
 import {
   Stage,
   Layer,
@@ -14,24 +15,35 @@ import CropIcon from "@mui/icons-material/Crop";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import "react-profile/themes/dark";
 import { openEditor } from "react-profile";
-import {  CircularProgress, Zoom } from "@mui/material";
+import { CircularProgress, Zoom } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-
-const EditImage = ({ imageSrc, itemDetails, onSave, onCancel }) => {
+import PhotoPickerModal from "./PhotoPickerModal";
+//import logo from "./Ajclogo.jpeg"
+import logo from "./watermark logo.png"
+const EditImage = ({ tag, imageSrc, itemDetails, onSave, onCancel }) => {
   // ---------------------------------------------------------------------
   // 1.  LOGO LOAD (original + transparent version)
-  // ---------------------------------------------------------------------
-   const logoUrl = `https://kumuduorderapp.blob.core.windows.net/logo/${itemDetails?.message[0].store_id}-${ itemDetails?.message[0].branch_id.toLowerCase()}.jpeg`;
-  //const logoUrl = `https://kumuduorderapp.blob.core.windows.net/logo/804-jjj.jpeg`;
+  //console.log("edit");
 
+  // ---------------------------------------------------------------------
+  // const logoUrl = `https://kumuduorderapp.blob.core.windows.net/logo/${
+  //   itemDetails?.message[0].store_id
+  // }-${itemDetails?.message[0].branch_id.toLowerCase()}.jpeg`;
+  const logoUrl = `https://kumuduorderapp.blob.core.windows.net/logo/804-jjj.jpeg`;
+const watermark=logo
   const [originalLogo] = useImage(logoUrl, "Anonymous");
   const transparentLogo = useTransparentLogo(logoUrl); // ⬅️ improved
-  const [useTransparent, setUseTransparent] = useState(true);
-const [uploading, setUploading] = useState(false);
-const [uploadDone, setUploadDone] = useState(false);
+  //const [useTransparent, setUseTransparent] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [uploadDone, setUploadDone] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
 
-  const logoImage =
-    useTransparent ? transparentLogo || originalLogo : originalLogo;
+  const [watermarkImage] = useImage(watermark, "Anonymous");
+const [showWatermark, setShowWatermark] = useState(!!watermark);
+
+  const logoImage = logoUrl
+    ? transparentLogo
+    : originalLogo;
 
   // ---------------------------------------------------------------------
   // 2.  MAIN IMAGE + STAGE
@@ -44,18 +56,19 @@ const [uploadDone, setUploadDone] = useState(false);
   const textRef = useRef();
   const logoRef = useRef();
   const trRef = useRef();
-
+  //const cameraInputRef = useRef(null);
+  //const fileInputRef = useRef(null);
   const [showEditor, setShowEditor] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
 
   // base size constants
-  const BASE_TEXT_WIDTH = 120;
-  const BASE_TEXT_HEIGHT = 80;
-  const BASE_FONT_SIZE = 14;
+  const BASE_TEXT_WIDTH = 120;//120
+  const BASE_TEXT_HEIGHT = 75;//75
+  const BASE_FONT_SIZE =16 ;
 
-  const MIN_STICKER_W = 100;
+  const MIN_STICKER_W = 10;
   const MIN_STICKER_H = 40;
-  const MIN_FONT = 8;
+  const MIN_FONT = 4;
 
   const [textSize, setTextSize] = useState({
     width: BASE_TEXT_WIDTH,
@@ -63,7 +76,7 @@ const [uploadDone, setUploadDone] = useState(false);
   });
   const [textFontSize, setTextFontSize] = useState(BASE_FONT_SIZE);
 
-  const [logoSize, setLogoSize] = useState({ width: 100, height: 100 });
+  const [logoSize, setLogoSize] = useState({ width: 76, height: 60 });
 
   const [textPosition, setTextPosition] = useState({ x: 50, y: 350 });
   const [logoPosition, setLogoPosition] = useState({ x: 20, y: 20 });
@@ -154,19 +167,38 @@ const [uploadDone, setUploadDone] = useState(false);
   const imageProps = getFittedImageProps();
 
   const didInitPos = useRef(false);
-  useEffect(() => {
-    if (imageProps && !didInitPos.current) {
-      didInitPos.current = true;
-      setLogoPosition({
-        x: imageProps.x + 1,//prev-->20
-        y: imageProps.y + imageProps.height - logoSize.height - 1,//prev-->20
-      });
-      setTextPosition({
-        x: imageProps.x + imageProps.width - textSize.width - 8,//prev-->20
-        y: imageProps.y + imageProps.height - textSize.height - 10,//prev-->20
-      });
-    }
-  }, [imageProps, logoSize.height, textSize.width, textSize.height]);
+  // useEffect(() => {
+  //   if (imageProps && !didInitPos.current) {
+  //     didInitPos.current = true;
+  //     setLogoPosition({
+  //       x: imageProps.x + 1, //prev-->20
+  //       y: imageProps.y + imageProps.height - logoSize.height - 1, //prev-->20
+  //     });
+  //     setTextPosition({
+  //       x: imageProps.x + imageProps.width - textSize.width - 8, //prev-->20
+  //       y: imageProps.y + imageProps.height - textSize.height - 10, //prev-->20
+  //     });
+  //   }
+  // }, [imageProps, logoSize.height, textSize.width, textSize.height]);
+
+ useEffect(() => {
+  if (imageProps && !didInitPos.current) {
+    didInitPos.current = true;
+
+    // ✅ Logo to Top-Right
+    setLogoPosition({
+      x: imageProps.x + imageProps.width - logoSize.width-15,
+      y: imageProps.y + 5,
+    });
+
+    // ✅ Text to Bottom-Left
+    setTextPosition({
+      x: imageProps.x + 10,
+      y: imageProps.y + imageProps.height - textSize.height - 10,
+    });
+  }
+}, [imageProps, logoSize.width, logoSize.height, textSize.width, textSize.height]);
+
 
   // ---------------------------------------------------------------------
   // 5.  Transformer selection
@@ -214,51 +246,59 @@ const [uploadDone, setUploadDone] = useState(false);
       setShowEditor(true);
     }
   };
+  //*******For change image ************* */
+  const handlePhotoCapture = (dataUrl) => {
+    didInitPos.current = false;
+    setMainImageSrc(dataUrl);
+  };
 
   const handleFinalSave = () => onSave(handleExport());
-const handleUpload = async () => {
-  try {
-    setUploading(true);
-    setUploadDone(false);
+  const handleUpload = async () => {
+    try {
+      setUploading(true);
+      setUploadDone(false);
 
-    const uri = handleExport();
-    const blob = await (await fetch(uri)).blob();
-    const formData = new FormData();
-    formData.append("image", blob, `${itemDetails.message[0].tagno}.png`);
-    //formData.append("image", blob, "edited_image.png");
-    formData.append("containerName", "testing"); // ⬅️ extra field
+      const uri = handleExport();
+      const blob = await (await fetch(uri)).blob();
+      const formData = new FormData();
+      formData.append("image", blob, `${tag.toString().toUpperCase()}.jpg`);
+      //formData.append("image", blob, "edited_image.png");
+      formData.append(
+        "containerName",
+        `${
+          itemDetails?.message[0].store_id
+        }-${itemDetails?.message[0].branch_id.toLowerCase()}`
+      ); // ⬅️ extra field
 
-    // 3. POST with Accept header
-    const res = await fetch(
-      "https://savingappbackend-etducad0cuhkbud8.centralindia-01.azurewebsites.net/api/admin/uploadimagetoblob",
-       {
-        method: "POST",
-        body: formData,
-        headers: { Accept: "application/json" },
-      }
-    );
-   const data = await res.json();
-   console.log(data);
-   
-    if (res.ok) {
-      setUploadDone(true);
-      setTimeout(() => {
+      // 3. POST with Accept header
+      const res = await fetch(
+        "https://savingappbackend-etducad0cuhkbud8.centralindia-01.azurewebsites.net/api/admin/uploadimagetoblob",
+        {
+          method: "POST",
+          body: formData,
+          headers: { Accept: "application/json" },
+        }
+      );
+      const data = await res.json();
+      console.log(data);
+
+      if (res.ok) {
+        setUploadDone(true);
+        setTimeout(() => {
+          setUploading(false);
+          //alert("✅ Upload successful: " + data.statusMessage);
+          handleFinalSave(); // Call final save after tick
+        }, 1000);
+      } else {
         setUploading(false);
-        //alert("✅ Upload successful: " + data.statusMessage);
-        handleFinalSave(); // Call final save after tick
-      }, 1000);
-    } else {
+        alert("Upload failed");
+      }
+    } catch (err) {
+      console.error("❌ Upload error:", err);
       setUploading(false);
-      alert("Upload failed");
+      alert("Upload error");
     }
-  } catch (err) {
-    console.error("❌ Upload error:", err);
-    setUploading(false);
-    alert("Upload error");
-  }
-};
-
-  
+  };
 
   // ---------------------------------------------------------------------
   // 7.  RENDER
@@ -274,35 +314,39 @@ const handleUpload = async () => {
         flexDirection: "column",
       }}
     >
-{uploading && (
-  <Box
-    sx={{
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      bgcolor: "rgba(0,0,0,0.5)",
-      zIndex: 9999,
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      flexDirection: "column",
-    }}
-  >
-    {!uploadDone ? (
-      <>
-        <CircularProgress size={60} />
-        <Box sx={{ color: "#fff", mt: 1 }}>Uploading…</Box>
-      </>
-    ) : (
-      <Zoom in={uploadDone}>
-        <CheckCircleIcon sx={{ fontSize: 80, color: "limegreen" }} />
-      </Zoom>
-    )}
-  </Box>
-)}
-
+      {uploading && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            bgcolor: "rgba(0,0,0,0.5)",
+            zIndex: 9999,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            flexDirection: "column",
+          }}
+        >
+          {!uploadDone ? (
+            <>
+              <CircularProgress size={60} />
+              <Box sx={{ color: "#fff", mt: 1 }}>Uploading…</Box>
+            </>
+          ) : (
+            <Zoom in={uploadDone}>
+              <CheckCircleIcon sx={{ fontSize: 80, color: "limegreen" }} />
+            </Zoom>
+          )}
+        </Box>
+      )}
+      <PhotoPickerModal
+        open={showPicker}
+        onClose={() => setShowPicker(false)}
+        onPick={handlePhotoCapture}
+      />
 
       {mainImage && (
         <>
@@ -326,6 +370,19 @@ const handleUpload = async () => {
                 onClick={() => setSelectedId(null)}
                 onTap={() => setSelectedId(null)}
               />
+{watermarkImage && showWatermark && imageProps && (
+  <KonvaImage
+    image={watermarkImage}
+    x={imageProps.x + imageProps.width / 2 - 100} // center horizontally
+    y={imageProps.y + imageProps.height / 2 - 100} // center vertically
+    width={200}
+    height={110}
+    ////opacity={100}
+    filters={[Konva.Filters.Brighten]}
+    //brightness={-50}
+    listening={false} // So user interactions skip it
+  />
+)}
 
               {/* ------------------ TEXT STICKER ------------------ */}
               <Group
@@ -343,10 +400,7 @@ const handleUpload = async () => {
                   const scaleX = grp.scaleX();
                   const scaleY = grp.scaleY();
 
-                  const newW = Math.max(
-                    MIN_STICKER_W,
-                    textSize.width * scaleX
-                  );
+                  const newW = Math.max(MIN_STICKER_W, textSize.width * scaleX);
                   const newH = Math.max(
                     MIN_STICKER_H,
                     textSize.height * scaleY
@@ -383,13 +437,16 @@ const handleUpload = async () => {
                 <Rect
                   width={textSize.width}
                   height={textSize.height}
-                  fill="white"
+                  //fill="white"
                   //cornerRadius={5}
                 />
                 <Text
-                  text={`${itemDetails.message[0].itemtype_name || ""}\n${itemDetails.message[0].designName || ""}\n${
-                   parseFloat(itemDetails.message[0].gross).toFixed(3)|| ""
-                    }Gms\n\n${itemDetails.message[0].tagno || ""}`}
+                  text={`${itemDetails.message[0].itemtype_name || ""}\n${
+                    (tag || "").toString().toUpperCase()
+                  }\n${
+                    parseFloat(itemDetails.message[0].gross_orig).toFixed(3) ||
+                    ""
+                  }Gms`}
                   //   text={`${itemDetails.name || ""}\n${itemDetails.design || ""}\n${
                   //  parseFloat(itemDetails.Weight).toFixed(3)|| ""
                   //   }Gms\n\n${itemDetails.tagno || ""}`}
@@ -460,7 +517,7 @@ const handleUpload = async () => {
               display: "flex",
               justifyContent: "space-between",
               p: 1,
-              height: 40,
+              height: 10,//40
               background: "rgba(0,0,0,0.5)",
               color: "#fff",
               zIndex: 10,
@@ -485,17 +542,20 @@ const handleUpload = async () => {
               justifyContent: "space-between",
               alignItems: "center",
               p: 1,
-              height:30,
+              height: 30,
               background: "rgba(0,0,0,0.5)",
               zIndex: 10,
             }}
           >
+            {/* -------- Change image input  -------- */}
+
             <Button
-              onClick={handleFinalSave}
-              sx={{ backgroundColor: "blue", color: "#fff", p: 0.5 }}
+              sx={{ backgroundColor: "blue", color: "#fff", p: 1, zIndex: 10 }}
+              onClick={() => setShowPicker(true)}
             >
-              Save
+              change image
             </Button>
+
 
             {/* -------- Logo BG toggle button -------- */}
             {/* <Button
@@ -505,15 +565,27 @@ const handleUpload = async () => {
               {useTransparent ? "BG: OFF" : "BG: ON"}
             </Button> */}
 
-            
-<Button
-  onClick={handleUpload}
-  disabled={uploading}
-  sx={{ backgroundColor: "blue", color: "#fff", paddingInline:4 }}
+        
+           <Button
+  onClick={() => setShowWatermark((prev) => !prev)}
+  sx={{ backgroundColor: "blue", color: "#fff", paddingY: 1, paddingInline: 4 }}
 >
-  Upload
+  {showWatermark ? "Hide" : "Show"}
 </Button>
 
+
+            <Button
+              onClick={handleUpload}
+              disabled={uploading}
+              sx={{
+                backgroundColor: "blue",
+                color: "#fff",
+                paddingY: 1,
+                paddingInline: 4,
+              }}
+            >
+              Upload
+            </Button>
           </Box>
         </>
       )}

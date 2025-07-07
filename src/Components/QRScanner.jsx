@@ -1,10 +1,6 @@
-// ✅ Updated QRScanner.jsx to use @capacitor-community/barcode-scanner instead of html5-qrcode
-
 import { useEffect, useState } from "react";
 import {
-  Container,
   Box,
-  Stack,
   Button,
   TextField,
   Typography,
@@ -45,18 +41,18 @@ function QRScanner({ onDone }) {
     };
   }, [showScanner, scannedTags]);
 
-  const handleManualSubmit = () => {
-    const input = manualInput.trim();
-    if (input && !scannedTags.includes(input)) {
-      const updated = [...scannedTags, input];
-      setScannedTags(updated);
-      setManualInput("");
+  // const handleManualSubmit = () => {
+  //   const input = manualInput.trim();
+  //   if (input && !scannedTags.includes(input)) {
+  //     const updated = [...scannedTags, input];
+  //     setScannedTags(updated);
+  //     setManualInput("");
 
-      if (updated.length >= 10) {
-        handleDone(updated);
-      }
-    }
-  };
+  //     if (updated.length >= 10) {
+  //       handleDone(updated);
+  //     }
+  //   }
+  // };
 
   const handleDone = (finalTags = scannedTags) => {
     BarcodeScanner.showBackground();
@@ -66,55 +62,60 @@ function QRScanner({ onDone }) {
   };
 
   return (
-    <Container maxWidth="md" sx={{ textAlign: "center", p: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        Scan QR Codes (Max 10)
-      </Typography>
-
-      {showScanner && (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          Camera scanning active. Point to QR.
+    <Box
+      sx={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 1000,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "flex-end",
+        background: "transparent",
+        pointerEvents: "none", // allow camera to remain interactive
+      }}
+    >
+      {/* Bottom UI Panel */}
+      <Box
+        sx={{
+          background: "rgba(0, 0, 0, 0.75)",
+          color: "white",
+          p: 2,
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          pointerEvents: "auto", // make content clickable
+        }}
+      >
+        <Typography variant="h6" gutterBottom>
+          Scan QR Codes (Max 10)
         </Typography>
-      )}
 
-      <Box mt={2}>
-        <TextField
-          fullWidth
-          size="small"
-          label="Enter Tagno manually"
-          value={manualInput}
-          onChange={(e) => setManualInput(e.target.value)}
-        />
+        {showScanner && (
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            📷 Scanning active. Point to a QR code.
+          </Typography>
+        )}
+
+        {scannedTags.length > 0 && (
+          <Box sx={{ mb: 1 }}>
+            <Typography>Scanned ({scannedTags.length}/10):</Typography>
+            {scannedTags.map((tag, idx) => (
+              <Typography key={idx} sx={{ fontSize: "0.9rem" }}>
+                🔹 {tag}
+              </Typography>
+            ))}
+          </Box>
+        )}
+
         <Button
           fullWidth
-          sx={{ mt: 1 }}
           variant="contained"
-          color="success"
-          onClick={handleManualSubmit}
+          color="primary"
+          onClick={() => handleDone()}
         >
-          ➕ Add Tagno
+          ✅ Done ({scannedTags.length})
         </Button>
       </Box>
-
-      {scannedTags.length > 0 && (
-        <Box mt={2}>
-          <Typography>Scanned ({scannedTags.length}/10):</Typography>
-          {scannedTags.map((tag, idx) => (
-            <Typography key={idx}>🔹 {tag}</Typography>
-          ))}
-        </Box>
-      )}
-
-      <Button
-        fullWidth
-        variant="contained"
-        sx={{ mt: 3 }}
-        color="primary"
-        onClick={() => handleDone()}
-      >
-        ✅ Done ({scannedTags.length})
-      </Button>
-    </Container>
+    </Box>
   );
 }
 
